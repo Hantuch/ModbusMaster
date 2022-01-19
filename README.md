@@ -13,6 +13,34 @@
 ## Overview
 This is an Arduino library for communicating with Modbus slaves over RS232/485 (via RTU protocol).
 
+ **Modified for _easier multiple-slave use_ as it:**
+
+ - Removes uint8_t slave parameter from ModbusMaster::begin(), preventing _u8MBSlave to be initialized
+  - Adds uint16_t u16SlaveAddress parameter (in the last position) to all functions that returns ModbusMasterTransaction (basically all the functions in the "features" part below) and initialized _u8MBSlave value with it
+  - Also adds its corresponding declarations to header file
+
+This make it so that only 1 ModbusMaster object is needed to use with multiple slaves, as you're required to specify the slave address on each read/write functions, this may or may not be more convenient to use, well at least for me it is.
+
+Simple example:
+
+``` cpp
+  ModbusMaster node;
+  
+  void setup() {
+   Serial.begin(9600, SERIAL_8N1);
+   node.begin(Serial);                              // No Slave Address Needed, Only Serial Stream
+   node.preTransmission(preTransmission);
+   node.postTransmission(postTransmission);
+  }
+  
+  void loop() {
+   node.readHoldingRegisters(registerAddress, registerLength, slaveAddress1);     // Read Holding Register on Slave #1
+   node.readInputRegisters(registerAddress, registerLength, slaveAddress2);       // Read Input Register on Slave #2
+  }
+
+```
+
+Inspired by @DIYDave solution in [this thread](https://github.com/4-20ma/ModbusMaster/issues/109)
 
 ## Features
 The following Modbus functions are available:
