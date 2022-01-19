@@ -58,10 +58,9 @@ Call once class has been instantiated, typically within setup().
 @param &serial reference to serial port object (Serial, Serial1, ... Serial3)
 @ingroup setup
 */
-void ModbusMaster::begin(uint8_t slave, Stream &serial)
+void ModbusMaster::begin(Stream &serial)
 {
 //  txBuffer = (uint16_t*) calloc(ku8MaxBufferSize, sizeof(uint16_t));
-  _u8MBSlave = slave;
   _serial = &serial;
   _u8TransmitBufferIndex = 0;
   u16TransmitBufferLength = 0;
@@ -318,10 +317,11 @@ order end of the word).
 @return 0 on success; exception number on failure
 @ingroup discrete
 */
-uint8_t ModbusMaster::readCoils(uint16_t u16ReadAddress, uint16_t u16BitQty)
+uint8_t ModbusMaster::readCoils(uint16_t u16ReadAddress, uint16_t u16BitQty, uint16_t u16SlaveAddress)
 {
   _u16ReadAddress = u16ReadAddress;
   _u16ReadQty = u16BitQty;
+  _u8MBSlave = u16SlaveAddress;
   return ModbusMasterTransaction(ku8MBReadCoils);
 }
 
@@ -350,10 +350,11 @@ order end of the word).
 @ingroup discrete
 */
 uint8_t ModbusMaster::readDiscreteInputs(uint16_t u16ReadAddress,
-  uint16_t u16BitQty)
+  uint16_t u16BitQty, uint16_t u16SlaveAddress)
 {
   _u16ReadAddress = u16ReadAddress;
   _u16ReadQty = u16BitQty;
+  _u8MBSlave = u16SlaveAddress;
   return ModbusMasterTransaction(ku8MBReadDiscreteInputs);
 }
 
@@ -375,10 +376,11 @@ register.
 @ingroup register
 */
 uint8_t ModbusMaster::readHoldingRegisters(uint16_t u16ReadAddress,
-  uint16_t u16ReadQty)
+  uint16_t u16ReadQty, uint16_t u16SlaveAddress)
 {
   _u16ReadAddress = u16ReadAddress;
   _u16ReadQty = u16ReadQty;
+  _u8MBSlave = u16SlaveAddress;
   return ModbusMasterTransaction(ku8MBReadHoldingRegisters);
 }
 
@@ -400,10 +402,11 @@ register.
 @ingroup register
 */
 uint8_t ModbusMaster::readInputRegisters(uint16_t u16ReadAddress,
-  uint8_t u16ReadQty)
+  uint8_t u16ReadQty, uint16_t u16SlaveAddress)
 {
   _u16ReadAddress = u16ReadAddress;
   _u16ReadQty = u16ReadQty;
+  _u8MBSlave = u16SlaveAddress;
   return ModbusMasterTransaction(ku8MBReadInputRegisters);
 }
 
@@ -422,10 +425,11 @@ address of the coil to be forced. Coils are addressed starting at zero.
 @return 0 on success; exception number on failure
 @ingroup discrete
 */
-uint8_t ModbusMaster::writeSingleCoil(uint16_t u16WriteAddress, uint8_t u8State)
+uint8_t ModbusMaster::writeSingleCoil(uint16_t u16WriteAddress, uint8_t u8State, uint16_t u16SlaveAddress)
 {
   _u16WriteAddress = u16WriteAddress;
   _u16WriteQty = (u8State ? 0xFF00 : 0x0000);
+  _u8MBSlave = u16SlaveAddress;
   return ModbusMasterTransaction(ku8MBWriteSingleCoil);
 }
 
@@ -443,11 +447,12 @@ written. Registers are addressed starting at zero.
 @ingroup register
 */
 uint8_t ModbusMaster::writeSingleRegister(uint16_t u16WriteAddress,
-  uint16_t u16WriteValue)
+  uint16_t u16WriteValue, uint16_t u16SlaveAddress)
 {
   _u16WriteAddress = u16WriteAddress;
   _u16WriteQty = 0;
   _u16TransmitBuffer[0] = u16WriteValue;
+  _u8MBSlave = u16SlaveAddress;
   return ModbusMasterTransaction(ku8MBWriteSingleRegister);
 }
 
@@ -469,15 +474,17 @@ corresponding output to be ON. A logical '0' requests it to be OFF.
 @ingroup discrete
 */
 uint8_t ModbusMaster::writeMultipleCoils(uint16_t u16WriteAddress,
-  uint16_t u16BitQty)
+  uint16_t u16BitQty, uint16_t u16SlaveAddress)
 {
   _u16WriteAddress = u16WriteAddress;
   _u16WriteQty = u16BitQty;
+  _u8MBSlave = u16SlaveAddress;
   return ModbusMasterTransaction(ku8MBWriteMultipleCoils);
 }
-uint8_t ModbusMaster::writeMultipleCoils()
+uint8_t ModbusMaster::writeMultipleCoils(uint16_t u16SlaveAddress)
 {
   _u16WriteQty = u16TransmitBufferLength;
+  _u8MBSlave = u16SlaveAddress;
   return ModbusMasterTransaction(ku8MBWriteMultipleCoils);
 }
 
@@ -497,17 +504,19 @@ is packed as one word per register.
 @ingroup register
 */
 uint8_t ModbusMaster::writeMultipleRegisters(uint16_t u16WriteAddress,
-  uint16_t u16WriteQty)
+  uint16_t u16WriteQty, uint16_t u16SlaveAddress)
 {
   _u16WriteAddress = u16WriteAddress;
   _u16WriteQty = u16WriteQty;
+  _u8MBSlave = u16SlaveAddress;
   return ModbusMasterTransaction(ku8MBWriteMultipleRegisters);
 }
 
 // new version based on Wire.h
-uint8_t ModbusMaster::writeMultipleRegisters()
+uint8_t ModbusMaster::writeMultipleRegisters(uint16_t u16SlaveAddress)
 {
   _u16WriteQty = _u8TransmitBufferIndex;
+  _u8MBSlave = u16SlaveAddress;
   return ModbusMasterTransaction(ku8MBWriteMultipleRegisters);
 }
 
@@ -535,11 +544,12 @@ Result = (Current Contents && And_Mask) || (Or_Mask && (~And_Mask))
 @ingroup register
 */
 uint8_t ModbusMaster::maskWriteRegister(uint16_t u16WriteAddress,
-  uint16_t u16AndMask, uint16_t u16OrMask)
+  uint16_t u16AndMask, uint16_t u16OrMask, uint16_t u16SlaveAddress)
 {
   _u16WriteAddress = u16WriteAddress;
   _u16TransmitBuffer[0] = u16AndMask;
   _u16TransmitBuffer[1] = u16OrMask;
+  _u8MBSlave = u16SlaveAddress;
   return ModbusMasterTransaction(ku8MBMaskWriteRegister);
 }
 
@@ -565,20 +575,22 @@ buffer.
 @ingroup register
 */
 uint8_t ModbusMaster::readWriteMultipleRegisters(uint16_t u16ReadAddress,
-  uint16_t u16ReadQty, uint16_t u16WriteAddress, uint16_t u16WriteQty)
+  uint16_t u16ReadQty, uint16_t u16WriteAddress, uint16_t u16WriteQty, uint16_t u16SlaveAddress)
 {
   _u16ReadAddress = u16ReadAddress;
   _u16ReadQty = u16ReadQty;
   _u16WriteAddress = u16WriteAddress;
   _u16WriteQty = u16WriteQty;
+  _u8MBSlave = u16SlaveAddress;
   return ModbusMasterTransaction(ku8MBReadWriteMultipleRegisters);
 }
 uint8_t ModbusMaster::readWriteMultipleRegisters(uint16_t u16ReadAddress,
-  uint16_t u16ReadQty)
+  uint16_t u16ReadQty, uint16_t u16SlaveAddress)
 {
   _u16ReadAddress = u16ReadAddress;
   _u16ReadQty = u16ReadQty;
   _u16WriteQty = _u8TransmitBufferIndex;
+  _u8MBSlave = u16SlaveAddress;
   return ModbusMasterTransaction(ku8MBReadWriteMultipleRegisters);
 }
 
